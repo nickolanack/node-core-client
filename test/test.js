@@ -14,7 +14,7 @@ client.getUserMetadata()
 	.then(function(metadata) {
 
 
-		console.log((typeof metadata) + JSON.stringify(metadata));
+		assert.equal(metadata.details.id, 0, 'Expected user not logged in');
 
 		return client.login(testSettings.username, testSettings.password).then().catch(logError);
 
@@ -27,12 +27,15 @@ client.getUserMetadata()
 			.then(function(metadata) {
 
 				console.log((typeof metadata) + JSON.stringify(metadata));
-				if (metadata.details.id != user.id) {
-					assert.equal(metadata.details.id, user.id, 'Expected userid');
-				}
-				assert.true()
-
+				
+				assert.equal(metadata.details.id, user.id, 'Expected user to be logged in');
+				
 			})
 
+	})
+	.then(function(){
+		return client.getLoginStatus().then(function(loggedIn){
+			assert(loggedIn,'Expected to be loggedIn')
+		});
 	})
 	.catch(logError);
