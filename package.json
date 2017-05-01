@@ -1,0 +1,24 @@
+{
+  "name": "node-core-client",
+  "version": "1.0.0",
+  "description": "Core App Client for Nodejs",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nickolanack/node-core-client.git"
+  },
+  "author": "",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/nickolanack/node-core-client/issues"
+  },
+  "homepage": "https://github.com/nickolanack/node-core-client#readme",
+  "dependencies": {
+    "cookie-client": "0.0.3",
+    "cookies": "^0.7.0",
+    "request": "^2.81.0"
+  }
+}
