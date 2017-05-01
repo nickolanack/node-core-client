@@ -17,8 +17,8 @@
   },
   "homepage": "https://github.com/nickolanack/node-core-client#readme",
   "dependencies": {
-    "cookie-client": "0.0.3",
-    "cookies": "^0.7.0",
+    "promise": "^7.1.1",
+    "pusher-js": "^4.1.0",
     "request": "^2.81.0"
   }
 }

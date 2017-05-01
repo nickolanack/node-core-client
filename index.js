@@ -13,8 +13,6 @@ var request = require("request").defaults({
 	jar: true
 })
 
-var cookieClient = require('cookie-client');
-var cookieStore = cookieClient();
 
 
 
@@ -86,15 +84,17 @@ CoreAppClient.prototype.hasSession = function() {
 
 CoreAppClient.prototype.login = function(username, password) {
 	var me = this;
-	return me.isConnected().then(function() {
 
-		return new Promise(function(resolve, reject){
+	return new Promise(function(resolve, reject){
+	
+	 	me.isConnected().then(function() {
 
 			jsonRequest(me.config.url + 'index.php?option=com_geolive&format=ajax&iam=node-client.guest&task=login&json=' + JSON.stringify({
 				"username": username,
 				"password": password
 			})).then(function(user){
 				me._id=user.id;
+				resolve(user);
 			}).catch(reject);
 
 		});
@@ -104,8 +104,9 @@ CoreAppClient.prototype.login = function(username, password) {
 };
 
 
+
 CoreAppClient.prototype.getLoginStatus= function() {
-	
+	var me=this;
 	return new Promise(function(resolve, reject) {
 
 		if (me._id && me._id > 0) {
@@ -126,6 +127,26 @@ CoreAppClient.prototype.getLoginStatus= function() {
 		});
 
 	});
+
+}
+
+
+CoreAppClient.prototype.subscribe= function(channel, event, handler) {
+	var me=this;
+
+
+	if(!me._pusher){
+		var Pusher = require('pusher-js');
+
+		me.pusher = new Pusher(me.config.pusherAppKey);
+
+
+
+	}
+	
+	me.pusher.subscribe(channel).bind(event,handler);
+
+	
 
 }
 
