@@ -1,6 +1,6 @@
-var events = require('events');
+var events = require("events");
 
-var Promise = require('promise');
+var Promise = require("promise");
 
 function CoreAppClient(config) {
 	var me = this;
@@ -16,7 +16,14 @@ var request = require("request").defaults({
 
 
 
-var jsonRequest = function(url) {
+
+
+
+CoreAppClient.prototype.__proto__ = events.EventEmitter.prototype;
+
+
+
+CoreAppClient.prototype.request = function(url) {
 
 	return new Promise(function(resolve, reject) {
 
@@ -44,9 +51,23 @@ var jsonRequest = function(url) {
 };
 
 
+CoreAppClient.prototype.task = function(task, params, path) {
 
-CoreAppClient.prototype.__proto__ = events.EventEmitter.prototype;
+	 var url=me.config.url + "administrator/components/com_geolive/core.php?0=1&format=ajax";
+	 if(path){
+	 	url=me.config.url + path;
+	 }
 
+	 url=url+"&task="+task;
+	 var json="&json={}";
+	 if(params){
+	 	json="&json="+JSON.stringify(params);
+	 }
+	 url=url+json;
+
+	 return me.request(url);
+
+}
 
 CoreAppClient.prototype.isConnected = function() {
 	var me = this;
@@ -58,11 +79,11 @@ CoreAppClient.prototype.isConnected = function() {
 			return;
 		}
 
-		console.log('Check connnected');
+		console.log("Check connnected");
 
-		jsonRequest(me.config.url + 'administrator/components/com_geolive/core.php?0=1&format=ajax&task=echo&json=' + JSON.stringify({
+		me.task("echo", {
 			"hello": "world"
-		})).then(function(obj) {
+		}).then(function(obj) {
 
 			if (obj && obj.hello === "world") {
 				me._connected = Date.now();
@@ -76,10 +97,7 @@ CoreAppClient.prototype.isConnected = function() {
 
 }
 
-CoreAppClient.prototype.hasSession = function() {
-	var me = this;
-	return jsonRequest(me.config.url + 'administrator/components/com_geolive/core.php?0=1&format=ajax&task=session_key&json=' + JSON.stringify({}));
-}
+
 
 
 CoreAppClient.prototype.login = function(username, password) {
@@ -89,10 +107,10 @@ CoreAppClient.prototype.login = function(username, password) {
 	
 	 	me.isConnected().then(function() {
 
-			jsonRequest(me.config.url + 'index.php?option=com_geolive&format=ajax&iam=node-client.guest&task=login&json=' + JSON.stringify({
+			me.task("login", {
 				"username": username,
 				"password": password
-			})).then(function(user){
+			}).then(function(user){
 				me._id=user.id;
 				resolve(user);
 			}).catch(reject);
@@ -136,19 +154,35 @@ CoreAppClient.prototype.subscribe= function(channel, event, handler) {
 
 
 	if(!me._pusher){
-		var Pusher = require('pusher-js');
+		var Pusher = require("pusher-js");
 
 		me.pusher = new Pusher(me.config.pusherAppKey);
 
-
-
 	}
 	
-	me.pusher.subscribe(channel).bind(event,handler);
+	me.pusher.subscribe(channel).bind(event, handler);
+
+}
+
+
+CoreAppClient.prototype.broadcast= function(channel, event, data) {
+	var me=this;
+
+	return me.isConnected().then(function() {
+
+		return me.task("emit_notification", {
+			"plugin": "PusherMessages",
+			"channel":channel,
+            "event":event,
+            "data":data
+		});
+
+	});
 
 	
 
 }
+
 
 
 CoreAppClient.prototype.getUserMetadata = function(user) {
@@ -156,9 +190,9 @@ CoreAppClient.prototype.getUserMetadata = function(user) {
 	var me = this;
 	return me.isConnected().then(function() {
 
-		return jsonRequest(me.config.url + 'administrator/components/com_geolive/core.php?0=1&format=ajax&task=user_metadata&json=' + JSON.stringify({
+		return me.task("user_metadata", {
 			"user": user
-		}));
+		});
 
 	});
 
