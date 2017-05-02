@@ -41,10 +41,12 @@ var request = function(url, callback) {
 
 CoreAppClient.prototype.request = function(url) {
 
+	var me=this;
+
 	return new Promise(function(resolve, reject) {
 
 
-		request(url, function(err, response, content) {
+		(me.options.request||request)(url, function(err, response, content) {
 
 			if (err) {
 				reject(err);
@@ -135,7 +137,7 @@ CoreAppClient.prototype.login = function(username, password) {
 			me.task("login", {
 				"username": username,
 				"password": password
-			}, "index.php?option=com_geolive&format=ajax&iam=node-client.guest").then(function(user) {
+			}, "/index.php?option=com_geolive&format=ajax&iam=node-client.guest").then(function(user) {
 
 				me._id = user.id;
 				me._token = user.access_token;
