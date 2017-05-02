@@ -48,7 +48,7 @@ CoreAppClient.prototype.request = function(url, data) {
 	return new Promise(function(resolve, reject) {
 
 
-		(me.options.request||request)(url, data, function(err, response, content) {
+		(me.config.request||request)(url, data, function(err, response, content) {
 
 			if (err) {
 				reject(err);
