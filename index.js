@@ -9,17 +9,33 @@ function CoreAppClient(config) {
 
 };
 
-var request = require("request").defaults({
-	jar: true
-})
+// var request = require("request").defaults({
+// 	jar: true
+// })
 
 
 
+var https = require('https');
+var request = function(url, callback) {
 
+	const req = https.request(url, (res) => {
 
+		var content='';
+		res.on('data', (chunk) => {
+			content = content + chunk;
+		});
+		res.on('end', () => {
+			console.log(content);
+			callback(null, res, content);
+		});
+	});
 
+	req.on('error', (e) => {
+		callback(e);
+	});
+	req.end();
 
-CoreAppClient.prototype.__proto__ = events.EventEmitter.prototype;
+}
 
 
 
@@ -53,19 +69,29 @@ CoreAppClient.prototype.request = function(url) {
 
 CoreAppClient.prototype.task = function(task, params, path) {
 
-	 var url=me.config.url + "administrator/components/com_geolive/core.php?0=1&format=ajax";
-	 if(path){
-	 	url=me.config.url + path;
-	 }
+	var me = this;
 
-	 url=url+"&task="+task;
-	 var json="&json={}";
-	 if(params){
-	 	json="&json="+JSON.stringify(params);
-	 }
-	 url=url+json;
+	if (!path) {
+		path = "administrator/components/com_geolive/core.php?0=1&format=ajax";
+	}
 
-	 return me.request(url);
+	path = path + "&task=" + task;
+	var json = "&json={}";
+	if (params) {
+		json = "&json=" + JSON.stringify(params);
+	}
+
+	if (me._token) {
+		path = path + '&access_token=' + me._token.token;
+	}
+
+	path = path + json;
+
+	return me.request({
+		host: me.config.url,
+		path: '/'+path,
+		method: 'POST',
+	});
 
 }
 
@@ -99,32 +125,34 @@ CoreAppClient.prototype.isConnected = function() {
 
 
 
-
 CoreAppClient.prototype.login = function(username, password) {
 	var me = this;
 
-	return new Promise(function(resolve, reject){
-	
-	 	me.isConnected().then(function() {
+	return new Promise(function(resolve, reject) {
+
+		me.isConnected().then(function() {
 
 			me.task("login", {
 				"username": username,
 				"password": password
-			}).then(function(user){
-				me._id=user.id;
+			}, "index.php?option=com_geolive&format=ajax&iam=node-client.guest").then(function(user) {
+
+				me._id = user.id;
+				me._token = user.access_token;
+
 				resolve(user);
 			}).catch(reject);
 
 		});
 
-		
+
 	});
 };
 
 
 
-CoreAppClient.prototype.getLoginStatus= function() {
-	var me=this;
+CoreAppClient.prototype.getLoginStatus = function() {
+	var me = this;
 	return new Promise(function(resolve, reject) {
 
 		if (me._id && me._id > 0) {
@@ -132,10 +160,10 @@ CoreAppClient.prototype.getLoginStatus= function() {
 			return;
 		}
 
-		return new Promise(function(resolve, reject){
+		return new Promise(function(resolve, reject) {
 
-			me.getUserMetadata().then(function(metadata){
-				if(metadata.details.id>0){
+			me.getUserMetadata().then(function(metadata) {
+				if (metadata.details.id > 0) {
 					resolve(true)
 				}
 				resolve(false);
@@ -149,37 +177,37 @@ CoreAppClient.prototype.getLoginStatus= function() {
 }
 
 
-CoreAppClient.prototype.subscribe= function(channel, event, handler) {
-	var me=this;
+CoreAppClient.prototype.subscribe = function(channel, event, handler) {
+	var me = this;
 
 
-	if(!me._pusher){
+	if (!me._pusher) {
 		var Pusher = require("pusher-js");
 
 		me.pusher = new Pusher(me.config.pusherAppKey);
 
 	}
-	
+
 	me.pusher.subscribe(channel).bind(event, handler);
 
 }
 
 
-CoreAppClient.prototype.broadcast= function(channel, event, data) {
-	var me=this;
+CoreAppClient.prototype.broadcast = function(channel, event, data) {
+	var me = this;
 
 	return me.isConnected().then(function() {
 
 		return me.task("emit_notification", {
 			"plugin": "PusherMessages",
-			"channel":channel,
-            "event":event,
-            "data":data
+			"channel": channel,
+			"event": event,
+			"data": data
 		});
 
 	});
 
-	
+
 
 }
 
