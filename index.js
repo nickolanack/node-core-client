@@ -15,9 +15,9 @@ function CoreAppClient(config) {
 
 
 
-var https = require('https');
-var request = function(options, data, callback) {
 
+var request = function(options, data, callback) {
+	var https = require('https');
 
 	const req = https.request(options, (res) => {
 
