@@ -47,7 +47,9 @@ CoreAppClient.prototype.request = function(url, data) {
 
 	return new Promise(function(resolve, reject) {
 
-
+		if(me.config.request){
+			console.log('using request overide');
+		}
 		(me.config.request||request)(url, data, function(err, response, content) {
 
 			if (err) {
