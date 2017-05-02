@@ -1,11 +1,11 @@
-var events = require("events");
+//var events = require("events");
 
 var Promise = require("promise");
 
 function CoreAppClient(config) {
 	var me = this;
 	me.config = config;
-	events.EventEmitter.call(me);
+	//events.EventEmitter.call(me);
 
 };
 
