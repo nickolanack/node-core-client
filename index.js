@@ -16,9 +16,10 @@ function CoreAppClient(config) {
 
 
 var https = require('https');
-var request = function(url, callback) {
+var request = function(options, data, callback) {
 
-	const req = https.request(url, (res) => {
+
+	const req = https.request(options, (res) => {
 
 		var content='';
 		res.on('data', (chunk) => {
@@ -33,20 +34,21 @@ var request = function(url, callback) {
 	req.on('error', (e) => {
 		callback(e);
 	});
+	req.write(data);
 	req.end();
 
 }
 
 
 
-CoreAppClient.prototype.request = function(url) {
+CoreAppClient.prototype.request = function(url, data) {
 
 	var me=this;
 
 	return new Promise(function(resolve, reject) {
 
 
-		(me.options.request||request)(url, function(err, response, content) {
+		(me.options.request||request)(url, data, function(err, response, content) {
 
 			if (err) {
 				reject(err);
@@ -77,14 +79,15 @@ CoreAppClient.prototype.task = function(task, params, path) {
 		path = "administrator/components/com_geolive/core.php?0=1&format=ajax";
 	}
 
-	path = path + "&task=" + task;
-	var json = "&json={}";
+	var data={};
+	data.task = task;
+	data.json = "{}";
 	if (params) {
-		json = "&json=" + JSON.stringify(params);
+		data.json = JSON.stringify(params);
 	}
 
 	if (me._token) {
-		path = path + '&access_token=' + me._token.token;
+		data.access_token = me._token.token;
 	}
 
 	path = path + json;
@@ -93,7 +96,7 @@ CoreAppClient.prototype.task = function(task, params, path) {
 		host: me.config.url,
 		path: '/'+path,
 		method: 'POST',
-	});
+	}, data);
 
 }
 
