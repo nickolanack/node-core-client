@@ -19,7 +19,10 @@ function CoreAppClient(config) {
 var request = function(options, data, callback) {
 	var https = require('https');
 
-	const req = https.request(options, (res) => {
+	options.headers= {
+              "Content-Type": "application/x-www-form-urlencoded"
+            };
+	var req = https.request(options, (res) => {
 
 		var content='';
 		res.on('data', (chunk) => {
@@ -33,7 +36,7 @@ var request = function(options, data, callback) {
 	req.on('error', (e) => {
 		callback(e);
 	});
-	req.write(data);
+	req.write(Object.keys(data).map(function(k){ return k+'='+encodeURI(data[k]); }).join('&'));
 	req.end();
 
 }
@@ -67,7 +70,7 @@ CoreAppClient.prototype.request = function(options, data) {
 				return;
 			}
 
-            console.log(content);
+            console.log(options.path+':'+content);
 
 			var obj = JSON.parse(content);
 
@@ -103,7 +106,7 @@ CoreAppClient.prototype.task = function(task, params, pathComponent) {
 	}
 
 	if (me._token) {
-		data.access_token = me._token.token;
+		path=path+"&access_token="+me._token.token;
 	}
 
 
@@ -130,10 +133,8 @@ CoreAppClient.prototype.isConnected = function() {
 			"hello": "world"
 		}).then(function(obj) {
 
-			console.log('echo result');
-
+		
 			if (obj && obj.hello === "world") {
-				console.log('echo success');
 				me._connected = Date.now();
 				me._connectedObj = obj;
 				resolve(obj);
@@ -178,24 +179,25 @@ CoreAppClient.prototype.login = function(username, password) {
 
 CoreAppClient.prototype.getLoginStatus = function() {
 	var me = this;
-	return new Promise(function(resolve, reject) {
+	return me.promise(function(resolve, reject) {
 
 		if (me._id && me._id > 0) {
+			console.log('resolve true');
 			resolve(true);
 			return;
 		}
 
-		return me.promise(function(resolve, reject) {
+		
 
-			me.getUserMetadata().then(function(metadata) {
-				if (metadata.details.id > 0) {
-					resolve(true)
-				}
-				resolve(false);
+		me.getUserMetadata().then(function(metadata) {
+			if (metadata.details.id > 0) {
+				resolve(true)
+			}
+			resolve(false);
 
-			}).catch(reject);
+		}).catch(reject);
 
-		});
+		
 
 	});
 
@@ -224,7 +226,7 @@ CoreAppClient.prototype.broadcast = function(channel, event, data) {
 	return me.isConnected().then(function() {
 
 		return me.task("emit_notification", {
-			"plugin": "PusherMessages",
+			"plugin": "Notifications",
 			"channel": channel,
 			"event": event,
 			"data": data
@@ -248,7 +250,67 @@ CoreAppClient.prototype.getUserMetadata = function(user) {
 		});
 
 	});
+};
+
+
+
+
+
+CoreAppClient.prototype.registerDevice = function(deviceName) {
+	var me = this;
+	return me.isConnected().then(function() {
+
+		return me.task("register_device", {
+			"deviceName": deviceName,
+			"plugin":"Apps"
+		});
+
+	});
+};
+
+
+
+CoreAppClient.prototype.createAccountForDevice = function(deviceId, provisioningKey) {
+	var me = this;
+	return me.isConnected().then(function() {
+
+		return me.task("create_account", {
+			"deviceId": deviceId,
+			"provisioningKey": provisioningKey,
+			"plugin":"Apps"
+		}, "/index.php?option=com_geolive&format=ajax&iam=node-client.guest");
+
+	});
+};
+
+
+CoreAppClient.prototype.loginDevice = function(deviceId, accountId, username, password) {
+	var me = this;
+
+	return me.promise(function(resolve, reject) {
+
+		me.isConnected().then(function() {
+
+			me.task("login_device", {
+				"deviceId": deviceId,
+				"accountId": accountId,
+				"username": username,
+				"password": password,
+				"plugin":"Apps"
+			}, "/index.php?option=com_geolive&format=ajax&iam=node-client.guest").then(function(user) {
+
+				me._id = user.id;
+				me._token = user.access_token;
+
+				resolve(user);
+
+			}).catch(reject);
+
+		}).catch(reject);
+
+	});
 
 };
+
 
 module.exports = CoreAppClient;
