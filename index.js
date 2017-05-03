@@ -1,6 +1,6 @@
 //var events = require("events");
 
-var Promise = require("promise");
+
 
 function CoreAppClient(config) {
 	var me = this;
@@ -26,7 +26,6 @@ var request = function(options, data, callback) {
 			content = content + chunk;
 		});
 		res.on('end', () => {
-			console.log(content);
 			callback(null, res, content);
 		});
 	});
@@ -39,32 +38,45 @@ var request = function(options, data, callback) {
 
 }
 
+var promise=function(callback){
+
+	var Promise = require("promise");
+	return new Promise(callback);
+
+}
 
 
-CoreAppClient.prototype.request = function(url, data) {
+CoreAppClient.prototype.promise = function(callback) {
+	var me=this;
+	if(me.config.promise){
+		console.log('overide promise');
+	}
+	return (me.config.promise||promise)(callback);
+}
+CoreAppClient.prototype.request = function(options, data) {
 
 	var me=this;
 
-	return new Promise(function(resolve, reject) {
 
-		if(me.config.request){
-			console.log('using request overide');
-		}
-		(me.config.request||request)(url, data, function(err, response, content) {
+	return me.promise(function(resolve, reject) {
+
+		(me.config.request||request)(options, data, function(err, response, content) {
 
 			if (err) {
 				reject(err);
 				return;
 			}
 
+            console.log(content);
 
 			var obj = JSON.parse(content);
 
 			if (obj && obj.success) {
+				
 				resolve(obj);
 				return;
 			}
-
+			
 			reject(obj);
 
 		});
@@ -73,16 +85,18 @@ CoreAppClient.prototype.request = function(url, data) {
 };
 
 
-CoreAppClient.prototype.task = function(task, params, path) {
+CoreAppClient.prototype.task = function(task, params, pathComponent) {
 
 	var me = this;
 
-	if (!path) {
-		path = "administrator/components/com_geolive/core.php?0=1&format=ajax";
+	var path = "administrator/components/com_geolive/core.php?0=1&format=ajax";
+
+	if (pathComponent) {
+		path=pathComponent;
 	}
 
 	var data={};
-	data.task = task;
+	//data.task = task;
 	data.json = "{}";
 	if (params) {
 		data.json = JSON.stringify(params);
@@ -92,11 +106,10 @@ CoreAppClient.prototype.task = function(task, params, path) {
 		data.access_token = me._token.token;
 	}
 
-	path = path + json;
 
 	return me.request({
 		host: me.config.url,
-		path: '/'+path,
+		path: '/'+path+'&task='+task,
 		method: 'POST',
 	}, data);
 
@@ -105,24 +118,29 @@ CoreAppClient.prototype.task = function(task, params, path) {
 CoreAppClient.prototype.isConnected = function() {
 	var me = this;
 
-	return new Promise(function(resolve, reject) {
+	return me.promise(function(resolve, reject) {
 
 		if (me._connected && me._connected > (Date.now() - (10 * 1000))) {
 			resolve(me._connectedObj);
 			return;
 		}
 
-		console.log("Check connnected");
 
 		me.task("echo", {
 			"hello": "world"
 		}).then(function(obj) {
 
+			console.log('echo result');
+
 			if (obj && obj.hello === "world") {
+				console.log('echo success');
 				me._connected = Date.now();
 				me._connectedObj = obj;
 				resolve(obj);
+				return;
 			}
+
+			reject(obj);
 
 		}).catch(reject);
 
@@ -135,7 +153,7 @@ CoreAppClient.prototype.isConnected = function() {
 CoreAppClient.prototype.login = function(username, password) {
 	var me = this;
 
-	return new Promise(function(resolve, reject) {
+	return me.promise(function(resolve, reject) {
 
 		me.isConnected().then(function() {
 
@@ -167,7 +185,7 @@ CoreAppClient.prototype.getLoginStatus = function() {
 			return;
 		}
 
-		return new Promise(function(resolve, reject) {
+		return me.promise(function(resolve, reject) {
 
 			me.getUserMetadata().then(function(metadata) {
 				if (metadata.details.id > 0) {
