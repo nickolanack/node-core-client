@@ -284,6 +284,33 @@ CoreAppClient.prototype.createAccountForDevice = function(deviceId, provisioning
 };
 
 
+
+
+CoreAppClient.prototype.getConfiguration = function(name) {
+	var me = this;
+	return me.isConnected().then(function() {
+
+		return me.task("get_configuration", {
+			"widget": name
+		});
+
+	});
+};
+
+CoreAppClient.prototype.getTemplate = function(name) {
+	var me = this;
+	return me.isConnected().then(function() {
+
+		return me.task("get_template", {
+			"widget": name,
+		});
+
+	});
+};
+
+
+
+
 CoreAppClient.prototype.loginDevice = function(deviceId, accountId, username, password) {
 	var me = this;
 
